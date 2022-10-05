@@ -42,7 +42,7 @@ def parse_option():
     parser.add_argument('--size', type=int, default=32, help='parameter for RandomResizedCrop')
 
     # method
-    parser.add_argument('--method', type=str, default='t_SimCLR', choices=['t_SimCLR', 'SimCLR'], help='choose method')
+    parser.add_argument('--method', type=str, default='t-SimCLR', choices=['t-SimCLR', 'SimCLR'], help='choose method')
 
     # temperature
     parser.add_argument('--temp', type=float, default=0.5, help='temperature for loss function')
@@ -183,7 +183,7 @@ def set_loader(opt, data_generator):
 
 def set_model(opt):
     model = t_SimCLR(name=opt.model)
-    if opt.method == 't_SimCLR':
+    if opt.method == 't-SimCLR':
         criterion = t_SimCLRLoss(temperature=opt.temp)
     elif opt.method == 'SimCLR':
         criterion = SimCLRLoss(temperature=opt.temp)
