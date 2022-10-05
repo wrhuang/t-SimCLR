@@ -1,1 +1,1 @@
-python main_supcon.py --epochs 1 --model resnet18 --batch_size 256 --learning_rate 0.5 --temp 0.5 --cosine --method SimCLR --data_folder ../cifar10 --num_workers 12
+python train.py --seed 1 --epochs 1 --model resnet18 --batch_size 256 --learning_rate 0.5 --temp 0.5 --cosine --method SimCLR --data_folder ../cifar10 --num_workers 12

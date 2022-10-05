@@ -7,14 +7,13 @@ import time
 import math
 
 import torch
-import torch.backends.cudnn as cudnn
 from torchvision import transforms, datasets
 
 from src.util import TwoCropTransform, AverageMeter
 from src.util import adjust_learning_rate, warmup_learning_rate
 from src.util import set_optimizer, save_model
 from src.model import t_SimCLR
-from src.losses import t_SimCLRLoss
+from src.losses import SimCLRLoss, t_SimCLRLoss
 
 
 
@@ -43,14 +42,14 @@ def parse_option():
     parser.add_argument('--size', type=int, default=32, help='parameter for RandomResizedCrop')
 
     # method
-    parser.add_argument('--method', type=str, default='SupCon', choices=['SupCon', 'SimCLR'], help='choose method')
+    parser.add_argument('--method', type=str, default='t_SimCLR', choices=['t_SimCLR', 'SimCLR'], help='choose method')
 
     # temperature
-    parser.add_argument('--temp', type=float, default=0.07, help='temperature for loss function')
+    parser.add_argument('--temp', type=float, default=0.5, help='temperature for loss function')
 
     # other setting
     parser.add_argument('--cosine', action='store_true', help='using cosine annealing')
-
+    parser.add_argument('--seed', type=str, default='', help='setting seed for reproducibility')
     parser.add_argument('--warm', action='store_true', help='warm-up for large batch training')
     parser.add_argument('--trial', type=str, default='0', help='id for recording multiple runs')
 
@@ -97,10 +96,39 @@ def parse_option():
     if not os.path.isdir(opt.save_folder):
         os.makedirs(opt.save_folder)
 
-    return opt
+    if opt.seed == '':
+        data_generator = None
+    else:
+        try:
+            opt.seed = int(opt.seed)
+            data_generator = set_seed(opt.seed)
+        except:
+            raise ValueError('seed is not int: {}'.format(opt.seed))
 
+    return opt, data_generator
 
-def set_loader(opt):
+def set_seed(seed):
+    try:
+        random.seed(seed)
+    except: 
+        pass
+    try:
+        numpy.random.seed(seed)
+    except:
+        pass
+    try:
+        torch.manual_seed(seed)
+        torch.backends.cudnn.deterministic = True   
+    except: 
+        pass
+
+    dataloader_generator = torch.Generator()
+    dataloader_generator.manual_seed(seed)
+    
+    return dataloader_generator
+    
+
+def set_loader(opt, data_generator):
     # construct data loader
     if opt.dataset == 'cifar10':
         mean = (0.4914, 0.4822, 0.4465)
@@ -141,23 +169,33 @@ def set_loader(opt):
         raise ValueError(opt.dataset)
 
     train_sampler = None
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
-        num_workers=opt.num_workers, pin_memory=True, sampler=train_sampler)
+    if data_generator == None:
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
+            num_workers=opt.num_workers, pin_memory=True, sampler=train_sampler)
+    else:
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=opt.batch_size, shuffle=(train_sampler is None),
+            num_workers=opt.num_workers, pin_memory=True, sampler=train_sampler, generator=data_generator)
 
     return train_loader
 
 
 def set_model(opt):
     model = t_SimCLR(name=opt.model)
-    criterion = t_SimCLRLoss(temperature=opt.temp)
+    if opt.method == 't_SimCLR':
+        criterion = t_SimCLRLoss(temperature=opt.temp)
+    elif opt.method == 'SimCLR':
+        criterion = SimCLRLoss(temperature=opt.temp)
+    else:
+        raise ValueError('contrastive method not supported: {}'.format(opt.method))
 
     if torch.cuda.is_available():
         if torch.cuda.device_count() > 1:
             model.encoder = torch.nn.DataParallel(model.encoder)
         model = model.cuda()
         criterion = criterion.cuda()
-        cudnn.benchmark = True
+        torch.backends.cudnn.benchmark = True
 
     return model, criterion
 
@@ -167,12 +205,10 @@ def train(train_loader, model, criterion, optimizer, epoch, opt):
     model.train()
 
     batch_time = AverageMeter()
-    data_time = AverageMeter()
     losses = AverageMeter()
 
     end = time.time()
     for idx, (images, labels) in enumerate(train_loader):
-        data_time.update(time.time() - end)
 
         images = torch.cat([images[0], images[1]], dim=0)
         if torch.cuda.is_available():
@@ -187,13 +223,7 @@ def train(train_loader, model, criterion, optimizer, epoch, opt):
         features = model(images)
         f1, f2 = torch.split(features, [bsz, bsz], dim=0)
         features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
-        if opt.method == 'SupCon':
-            loss = criterion(features, labels)
-        elif opt.method == 'SimCLR':
-            loss = criterion(features)
-        else:
-            raise ValueError('contrastive method not supported: {}'.
-                             format(opt.method))
+        loss = criterion(features)
 
         # update metric
         losses.update(loss.item(), bsz)
@@ -210,21 +240,20 @@ def train(train_loader, model, criterion, optimizer, epoch, opt):
         # print info
         if (idx + 1) % opt.print_freq == 0:
             print('Train: [{0}][{1}/{2}]\t'
-                  'BT {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'DT {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                  'batch time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'loss {loss.val:.3f} ({loss.avg:.3f})'.format(
                    epoch, idx + 1, len(train_loader), batch_time=batch_time,
-                   data_time=data_time, loss=losses))
+                   loss=losses))
             sys.stdout.flush()
 
     return losses.avg
 
 
 def main():
-    opt = parse_option()
+    opt, data_generator = parse_option()
 
     # build data loader
-    train_loader = set_loader(opt)
+    train_loader = set_loader(opt, data_generator)
 
     # build model and criterion
     model, criterion = set_model(opt)
