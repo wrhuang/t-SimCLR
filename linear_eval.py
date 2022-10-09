@@ -6,7 +6,6 @@ import time
 import math
 
 import torch
-import torch.backends.cudnn as cudnn
 from torchvision import transforms, datasets
 
 from src.util import AverageMeter
@@ -150,7 +149,7 @@ def set_model(opt):
         model = model.cuda()
         classifier = classifier.cuda()
         criterion = criterion.cuda()
-        cudnn.benchmark = True
+        torch.backends.cudnn.benchmark = True
 
         model.load_state_dict(state_dict)
 
@@ -163,13 +162,11 @@ def train(train_loader, model, classifier, criterion, optimizer, epoch, opt):
     classifier.train()
 
     batch_time = AverageMeter()
-    data_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
 
     end = time.time()
     for idx, (images, labels) in enumerate(train_loader):
-        data_time.update(time.time() - end)
 
         images = images.cuda(non_blocking=True)
         labels = labels.cuda(non_blocking=True)
@@ -201,12 +198,11 @@ def train(train_loader, model, classifier, criterion, optimizer, epoch, opt):
         # print info
         if (idx + 1) % opt.print_freq == 0:
             print('Train: [{0}][{1}/{2}]\t'
-                  'BT {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'DT {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                  'batch time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'loss {loss.val:.3f} ({loss.avg:.3f})\t'
-                  'Acc@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
+                  'acc@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
                    epoch, idx + 1, len(train_loader), batch_time=batch_time,
-                   data_time=data_time, loss=losses, top1=top1))
+                   loss=losses, top1=top1))
             sys.stdout.flush()
 
     return losses.avg, top1.avg
@@ -243,9 +239,9 @@ def validate(val_loader, model, classifier, criterion, opt):
 
             if idx % opt.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
-                      'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                      'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                      'Acc@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
+                      'batch time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                      'loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                      'acc@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
                        idx, len(val_loader), batch_time=batch_time,
                        loss=losses, top1=top1))
 

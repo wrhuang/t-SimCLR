@@ -281,6 +281,21 @@ def main():
         opt.save_folder, 'last.pth')
     save_model(model, optimizer, opt, opt.epochs, save_file)
 
+    # rewrite eval script 
+    f = open("eval.sh")
+    lines = f.read()
+    f.close()
+    cmd = lines.split()
+    index = cmd.index('--ckpt')
+    cmd[index+1] = save_file
+    import platform
+    if platform.system().lower() == 'windows':
+        f = open("eval.sh", "w")
+    else:
+        f = open("eval.sh", "w")
+    f.write(' '.join(cmd))
+    f.close()
+
 
 if __name__ == '__main__':
     main()
