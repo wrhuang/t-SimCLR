@@ -281,20 +281,19 @@ def main():
         opt.save_folder, 'last.pth')
     save_model(model, optimizer, opt, opt.epochs, save_file)
 
-    # rewrite eval script 
-    f = open("eval.sh")
-    lines = f.read()
-    f.close()
-    cmd = lines.split()
-    index = cmd.index('--ckpt')
-    cmd[index+1] = save_file
-    import platform
-    if platform.system().lower() == 'windows':
+    # build eval script 
+    try:
+        cmd = "python linear_eval.py"
+        cmd += " --ckpt=" + save_file
+        cmd += " --model=" + opt.model
+        cmd += " --data_folder=" + opt.data_folder
+    
         f = open("eval.sh", "w")
-    else:
-        f = open("eval.sh", "w")
-    f.write(' '.join(cmd))
-    f.close()
+        f.write(cmd)
+        f.close()   
+        os.system('sh eval.sh')
+    except:
+        pass
 
 
 if __name__ == '__main__':
