@@ -46,6 +46,7 @@ def parse_option():
 
     # temperature
     parser.add_argument('--temp', type=float, default=0.5, help='temperature for loss function')
+    parser.add_argument('--t_df', type=float, default=5, help='value of t_df for t-SimCLR')
 
     # other setting
     parser.add_argument('--cosine', action='store_true', help='using cosine annealing')
@@ -184,7 +185,7 @@ def set_loader(opt, data_generator):
 def set_model(opt):
     model = t_SimCLR(name=opt.model)
     if opt.method == 't-SimCLR':
-        criterion = t_SimCLRLoss(temperature=opt.temp)
+        criterion = t_SimCLRLoss(temperature=opt.temp, t_df=opt.t_df)
     elif opt.method == 'SimCLR':
         criterion = SimCLRLoss(temperature=opt.temp)
     else:
