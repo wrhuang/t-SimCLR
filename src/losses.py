@@ -70,10 +70,10 @@ class t_SimCLRLoss(nn.Module):
     """
     t-SimCLR: https://arxiv.org/pdf/2205.14814.pdf
     """
-    def __init__(self, temperature=0.5, base_temperature=0.07):
+    def __init__(self, temperature=0.5, t_df=5):
         super(t_SimCLRLoss, self).__init__()
         self.temperature = temperature
-        self.base_temperature = base_temperature
+        self.t_df = t_df
 
     def forward(self, features):
         """Args:
@@ -97,7 +97,7 @@ class t_SimCLRLoss(nn.Module):
         contrast_feature_matrix = contrast_feature.repeat(batch_size*contrast_count,1,1)   # [bsz*n_views, bsz*n_views, feat_dim]
         contrast_feature_matrix = contrast_feature_matrix - contrast_feature_matrix.transpose(0,1)
         features_square = torch.square(torch.norm(contrast_feature_matrix, dim=2)) # [bsz*n_views, bsz*n_views]
-        logits = torch.div(1,torch.div(features_square, self.temperature) + 1)
+        logits = (torch.div(features_square, self.temperature * self.t_df) + 1) ** (-(self.t_df/2+0.5))
 
         # tile mask
         mask = mask.repeat(contrast_count, contrast_count)  # n_views*n_views identity matrice, each shape is [bsz, bsz]
