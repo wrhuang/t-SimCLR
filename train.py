@@ -50,7 +50,7 @@ def parse_option():
 
     # other setting
     parser.add_argument('--cosine', action='store_true', help='using cosine annealing')
-    parser.add_argument('--seed', type=str, default='', help='setting seed for reproducibility')
+    parser.add_argument('--seed', type=str, default=None, help='setting seed for reproducibility')
     parser.add_argument('--warm', action='store_true', help='warm-up for large batch training')
     parser.add_argument('--trial', type=str, default='0', help='id for recording multiple runs')
 
@@ -84,7 +84,7 @@ def parse_option():
         opt.warm = True
     if opt.warm:
         opt.model_name = '{}_warm'.format(opt.model_name)
-        opt.warmup_from = 0.01
+        opt.warmup_from = 0.02 * opt.learning_rate
         opt.warm_epochs = 10
         if opt.cosine:
             eta_min = opt.learning_rate * (opt.lr_decay_rate ** 3)
@@ -97,7 +97,7 @@ def parse_option():
     if not os.path.isdir(opt.save_folder):
         os.makedirs(opt.save_folder)
 
-    if opt.seed == '':
+    if opt.seed is None:
         data_generator = None
     else:
         try:

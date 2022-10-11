@@ -59,7 +59,7 @@ def parse_option():
     # warm-up for large-batch training,
     if opt.warm:
         opt.model_name = '{}_warm'.format(opt.model_name)
-        opt.warmup_from = 0.01
+        opt.warmup_from = 0.01 * opt.learning_rate
         opt.warm_epochs = 10
         if opt.cosine:
             eta_min = opt.learning_rate * (opt.lr_decay_rate ** 3)
