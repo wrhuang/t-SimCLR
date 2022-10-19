@@ -288,6 +288,7 @@ def main():
         cmd += " --ckpt=" + save_file
         cmd += " --model=" + opt.model
         cmd += " --data_folder=" + opt.data_folder
+        cmd += " --dataset=" + opt.dataset
     
         f = open("./scripts/eval.sh", "w")
         f.write(cmd)
