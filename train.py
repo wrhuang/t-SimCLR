@@ -27,10 +27,10 @@ def parse_option():
     parser.add_argument('--epochs', type=int, default=1000, help='number of training epochs')
 
     # optimization
-    parser.add_argument('--learning_rate', type=float, default=0.05, help='learning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.4, help='learning rate')
     parser.add_argument('--lr_decay_epochs', type=str, default='700,800,900', help='where to decay lr, can be a list')
     parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
-    parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay')
+    parser.add_argument('--weight_decay', type=float, default=0.00016, help='weight decay')
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
 
     # model dataset
@@ -45,7 +45,7 @@ def parse_option():
     parser.add_argument('--method', type=str, default='t-SimCLR', choices=['t-SimCLR', 'SimCLR'], help='choose method')
 
     # temperature
-    parser.add_argument('--temp', type=float, default=0.5, help='temperature for loss function')
+    parser.add_argument('--temp', type=float, default=8, help='temperature for loss function')
     parser.add_argument('--t_df', type=float, default=5, help='value of t_df for t-SimCLR')
 
     # other setting
@@ -289,10 +289,10 @@ def main():
         cmd += " --model=" + opt.model
         cmd += " --data_folder=" + opt.data_folder
     
-        f = open("eval.sh", "w")
+        f = open("./scripts/eval.sh", "w")
         f.write(cmd)
         f.close()   
-        os.system('sh eval.sh')
+        os.system('sh ./scripts/eval.sh')
     except:
         pass
 

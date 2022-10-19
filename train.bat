@@ -1,1 +1,0 @@
-python train.py --epochs 1 --model resnet18 --batch_size 256 --learning_rate 0.5 --temp 0.5 --cosine --method t-SimCLR --data_folder ../cifar10 --num_workers 12
