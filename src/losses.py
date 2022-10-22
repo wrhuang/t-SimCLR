@@ -112,9 +112,10 @@ class t_SimCLRLoss(nn.Module):
         mask = mask * logits_mask   # [bsz*n_views, bsz*n_views], value = [0,I; I,0]
 
         # compute loss
-        first_term = torch.log(logits) * mask
+        # first_term = torch.log(logits) * mask
+        first_term = -(self.t_df/2+0.5) * torch.log(torch.div(features_square, self.temperature * self.t_df) + 1) * mask
         first_term = - torch.div(torch.sum(first_term), 2*batch_size)
-        second_term = torch.log(torch.sum(logits * logits_mask))
+        second_term = torch.log(torch.sum(logits * logits_mask) + 1e-6)
         loss = first_term + second_term
 
         return loss
