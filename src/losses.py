@@ -102,7 +102,7 @@ class t_SimCLRLoss(nn.Module):
         logits_max = torch.max(logits)
         logits = torch.div(logits, logits_max.detach())
         logits = logits - torch.diag_embed(torch.diag(logits)-1)    # The diag elements are set to 1 to avoid inf. Note that they will not be used later.
-        logits = logits ** (-(self.t_df/2+0.5))
+        power_logits = logits ** (-(self.t_df/2+0.5))
 
         # tile mask
         mask = mask.repeat(contrast_count, contrast_count)  # n_views*n_views identity matrice, each shape is [bsz, bsz]
@@ -117,10 +117,10 @@ class t_SimCLRLoss(nn.Module):
         mask = mask * logits_mask   # [bsz*n_views, bsz*n_views], value = [0,I; I,0]
 
         # compute loss
-        first_term = torch.log(logits) * mask
-        # first_term = -(self.t_df/2+0.5) * torch.log(torch.div(features_square, self.temperature * self.t_df) + 1) * mask
+        # first_term = torch.log(power_logits) * mask
+        first_term = -(self.t_df/2+0.5) * torch.log(logits) * mask
         first_term = - torch.div(torch.sum(first_term), 2*batch_size)
-        second_term = torch.log(torch.sum(logits * logits_mask) + 1e-6)
+        second_term = torch.log(torch.sum(power_logits * logits_mask) + 1e-6)
         loss = first_term + second_term
 
         return loss
