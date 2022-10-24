@@ -99,7 +99,7 @@ class t_SimCLRLoss(nn.Module):
         features_square = torch.square(torch.norm(contrast_feature_matrix, dim=2)) # [bsz*n_views, bsz*n_views]
         logits = (torch.div(features_square, self.temperature * self.t_df) + 1) 
         # for numerical stability
-        logits_max, _ = torch.max(logits)
+        logits_max = torch.max(logits)
         logits = torch.div(logits, logits_max.detach())
         logits = logits - torch.diag_embed(torch.diag(logits)-1)    # The diag elements are set to 1 to avoid inf. Note that they will not be used later.
         logits = logits ** (-(self.t_df/2+0.5))
